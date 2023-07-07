@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="http://localhost:3000/main.js"></script>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>娱乐早知道</title>
+  <link rel="stylesheet" href="http://localhost:3000/css/bootstrap.min.css">
+  <link rel="stylesheet" href="http://localhost:3000/css/main.css">
+</head>
+
+
+<body style="background-color: #fdefe0">
+
+<div class="container"><br>
+  <img src="http://localhost:3000/img/title.png"><br>
+  <div class="search-bar">
+    <input id="keyword-input" type="search" class="form-control fa-magnifying-glass" placeholder="开启吃瓜之旅"><br>
+    <button class="btn" onclick="searchNews()">搜索</button><br>
+    <button class="btn" onclick="showKeywordFrequencyChart()">查看热度</button>
+  </div>
+  <img class="bg" src="http://localhost:3000/img/eat_melon.png">
+</div>
+
+<br><br>
+
+<div id="result-container" style="display: none;">
+  <div class="table-container" style="display: flex; align-items: center;">
+    <button class="btn2" id="prev-btn" style="margin-left: 10%;" onclick="goToPrevPage()"> < </button>
+    <table class="table">
+      <thead>
+      <tr>
+        <th class="table-header">题目</th>
+        <th class="table-header">时间</th>
+        <th class="table-header">作者</th>
+        <th class="table-header">关键词</th>
+        <th class="table-header">URL</th>
+        <th class="table-header">来源</th>
+      </tr>
+      </thead>
+      <tbody id="result-body"></tbody>
+    </table>
+    <button class="btn2" id="next-btn" style="margin-right: 8%;" onclick="goToNextPage()"> > </button>
+  </div>
+  <div>
+    <img src="http://localhost:3000/img/movie.png">
+  </div>
+</div>
+
+
+<div id="chart-popup" style="display: none;">
+  <button id="close-button">关闭</button>
+  <div id="chart-container"></div>
+</div>
+
+
+<script>
+  let currentPage = 1;
+  const resultsPerPage = 10;
+  let newsData = [];
+
+  function searchNews() {
+    const keyword = document.getElementById('keyword-input').value;
+
+    fetch(`/search?keyword=${encodeURIComponent(keyword)}`)
+            .then(response => response.json())
+            .then(data => {
+              newsData = data;
+              showResults();
+            })
+            .catch(error => {
+              console.error('An error occurred during the search:', error);
+              alert('搜索过程中发生了错误');
+            });
+  }
+
+  function showResults() {
+    const resultContainer = document.getElementById('result-container');
+    const resultBody = document.getElementById('result-body');
+    const prevButton = document.getElementById('prev-btn');
+    const nextButton = document.getElementById('next-btn');
+    const totalPages = Math.ceil(newsData.length / resultsPerPage);
+
+    resultBody.innerHTML = '';
+
+    if (newsData.length === 0) {
+      resultContainer.style.display = 'none';
+      alert('没有找到匹配的新闻');
+    } else {
+      resultContainer.style.display = 'block';
+      document.querySelector('.bg').style.display = 'none'; // 隐藏图片
+      const startIndex = (currentPage - 1) * resultsPerPage;
+      const endIndex = startIndex + resultsPerPage;
+
+      for (let i = startIndex; i < endIndex && i < newsData.length; i++) {
+        const news = newsData[i];
+        const row = document.createElement('tr');
+        row.innerHTML = `
+        <td>${news.title}</td>
+        <td>${news.publish_date}</td>
+        <td>${news.author}</td>
+        <td>${news.keywords}</td>
+        <td><a href="${news.url}" target="_blank">查看详情</a></td>
+        <td>${news.source_name}</td>
+      `;
+        resultBody.appendChild(row);
+      }
+
+      prevButton.disabled = currentPage === 1;
+      nextButton.disabled = currentPage === totalPages;
+      document.querySelector('.bg').style.display = 'none'; // 显示图片
+    }
+  }
+
+  function goToPrevPage() {
+    if (currentPage > 1) {
+      currentPage--;
+      showResults();
+    }
+  }
+
+  function goToNextPage() {
+    const totalPages = Math.ceil(newsData.length / resultsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      showResults();
+    }
+  }
+
+  function showKeywordFrequencyChart() {
+    const keyword = document.getElementById('keyword-input').value;
+
+    fetch(`/keyword-frequency?keyword=${encodeURIComponent(keyword)}`)
+            .then(response => response.json())
+            .then(data => {
+              // Create the chart
+              const chart = Highcharts.chart('chart-container', {
+                chart: { type: 'line' },
+                title: { text: '词条热度' },
+                xAxis: { categories: data.map(item => item.date) },
+                yAxis: { title: { text: '频数' } },
+                series: [{ name: '频数', data: data.map(item => item.frequency) }]
+              });
+
+              // Show the popup with the chart
+              const popup = document.getElementById('chart-popup');
+              popup.style.display = 'block';
+
+              // Close the popup when the close button is clicked
+              const closeButton = document.getElementById('close-button');
+              closeButton.addEventListener('click', () => {
+                popup.style.display = 'none';
+                chart.destroy(); // Destroy the chart to release resources
+              });
+            })
+            .catch(error => {
+              console.error('An error occurred while retrieving keyword frequency:', error);
+              alert('获取关键词频率时发生错误');
+            });
+  }
+</script>
+
+</body>
+
+</html>
