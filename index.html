@@ -35,7 +35,10 @@
       <thead>
       <tr>
         <th class="table-header">题目</th>
-        <th class="table-header">时间</th>
+        <th class="table-header">时间
+          <button class="sort-btn" onclick="sortByDateAsc()">&#9650;</button>
+          <button class="sort-btn" onclick="sortByDateDesc()">&#9660;</button>
+        </th>
         <th class="table-header">作者</th>
         <th class="table-header">关键词</th>
         <th class="table-header">URL</th>
@@ -131,6 +134,16 @@
     }
   }
 
+  function sortByDateAsc() {
+    newsData.sort((a, b) => new Date(a.publish_date) - new Date(b.publish_date));
+    showResults();
+  }
+
+  function sortByDateDesc() {
+    newsData.sort((a, b) => new Date(b.publish_date) - new Date(a.publish_date));
+    showResults();
+  }
+
   function showKeywordFrequencyChart() {
     const keyword = document.getElementById('keyword-input').value;
 
@@ -139,11 +152,14 @@
             .then(data => {
               // Create the chart
               const chart = Highcharts.chart('chart-container', {
-                chart: { type: 'line' },
+                chart: { type: 'column' }, // Use 'column' as the base chart type
                 title: { text: '词条热度' },
                 xAxis: { categories: data.map(item => item.date) },
                 yAxis: { title: { text: '频数' } },
-                series: [{ name: '频数', data: data.map(item => item.frequency) }]
+                series: [
+                  { name: '频数', data: data.map(item => item.frequency), type: 'column' }, // Column series
+                  { name: '频数', data: data.map(item => item.frequency), type: 'line' } // Line series
+                ]
               });
 
               // Show the popup with the chart
@@ -161,6 +177,7 @@
               console.error('An error occurred while retrieving keyword frequency:', error);
               alert('获取关键词频率时发生错误');
             });
+
   }
 </script>
 
